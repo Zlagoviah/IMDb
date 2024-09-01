@@ -1,0 +1,62 @@
+credentials:
+  uri: 'bolt://44.212.23.80:7687'
+  user: neo4j
+  password: 'pool-slaps-opposites'
+
+cypher:
+  load_nodes:
+
+    # loading in title.akas.tsv.gz nodes
+    load_akas: |
+      WITH $rows AS rows
+      UNWIND rows AS row
+      MERGE (title_a: Title_akas {titleID: row.titleId, index_: row.ordering})
+      ON CREATE SET title_a.title_name = row.title,
+      title_a.region = row.region, title_a.language = row.language, title_a.types = row.types,
+      title_a.attributes = row.attributes, title_a.isoriginaltitle = row.isOriginalTitle
+
+    # loading in title.basics.tsv.gz nodes
+    load_basics: |
+      WITH $rows AS rows
+      UNWIND rows AS row
+      MERGE (title_b: Title_basics {titleID: row.tconst})
+      ON CREATE SET title_b.title_type = row.titleType, title_b.primary_title = row.primaryTitle,
+      title_b.original_title = row.originalTitle, title_b.isadult = row.isAdult, title_b.start_year = row.startYear,
+      title_b.end_year = row.endYear, title_b.duration = row.runtimeMinutes, title_b.genres = row.genres
+
+    # loading in title.crew.tsv.gz nodes
+    load_crew: |
+      WITH $rows AS rows
+      UNWIND rows AS row
+      MERGE (title_c: Title_crew {titleID: row.tconst})
+      ON CREATE SET title_c.directors = row.directors, title_c.writers = row.writers
+
+    # loading in title.episode.tsv.gz nodes
+    load_episode: |
+      WITH $rows AS rows
+      UNWIND rows AS row
+      MERGE (title_e: Title_episode {titleID: row.parentTconst, episodeID: row.tconst})
+      ON CREATE SET title_e.season_no = row.seasonNumber, title_e.episode_no = row.episodeNumber
+
+    # loading in the title.principals.tsv.gz nodes
+    # WHERE row.tconst IS NOT NULL AND row.nconst IS NOT NULL
+    load_principals: | 
+      WITH $rows AS rows
+      UNWIND rows AS row
+      MERGE (title_p: Title_principals {titleID: row.tconst, personID: row.nconst, index_: row.ordering})
+      ON CREATE SET title_p.job_category = row.category, title_p.job_title = row.job, title_p.characters_name = row.characters
+
+    # loading in the title.ratings.tsv.gz nodes
+    load_ratings: | 
+      WITH $rows AS rows
+      UNWIND rows AS row
+      MERGE (title_r: Title_ratings {titleID: row.tconst})
+      ON CREATE SET title_r.average_rating = row.averageRating, title_r.votes_no = row.numVotes
+
+    # loading in the name.basics.tsv.gz nodes
+    load_namebasics: | 
+      WITH $rows AS rows
+      UNWIND rows AS row
+      MERGE (name_b: Name_basics {personID: row.nconst})
+      ON CREATE SET name_b.primary_name = row.primaryName, name_b.birth_year = row.birthYear, name_b.death_year = row.deathYear,
+      name_b.primary_profession = row.primaryProfession, name_b.known_for_titles = row.knownForTitles
