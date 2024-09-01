@@ -1,7 +1,7 @@
 credentials:
-  uri: 'bolt://44.212.23.80:7687'
+  uri: 'bolt://44.xxx.xx.80:xxxx'
   user: neo4j
-  password: 'pool-slaps-opposites'
+  password: 'xxxx-xxxx-opposites'
 
 cypher:
   load_nodes:
