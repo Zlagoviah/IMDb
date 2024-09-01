@@ -3,29 +3,26 @@ credentials:
   user: neo4j
   password: 'xxxxx-xxxx-xxxx'
 
-cypher:
+  cypher:
   load_nodes:
 
-    # loading in the title.principals.tsv.gz nodes
-    # WHERE row.tconst IS NOT NULL AND row.nconst IS NOT NULL
+    # loading in the  nodes
     load_series: | 
       WITH $rows AS rows
       UNWIND rows AS row
-      MERGE (title_p:Title_principals {titleID: row.tconst})
-      ON CREATE SET title_p.index_ = row.ordering, title_p.personID = row.nconst, title_p.job_category= row.category,
-      title_p.job_title= row.job, title_p.characters_name= row.characters
+      MERGE (s:Series {seriesName:row.series_name})
     
-    # loading in title.akas.tsv.gz nodes and connecting them to existing title.principals.tsv.gz nodes
+    # loading in episode nodes and connecting them to existing series nodes
     load_episodes: |
       WITH $rows AS rows
       UNWIND rows AS row
-      WHERE row.titleId IS NOT NULL
-      MATCH (title_akas: title_akas {titleID: row.titleId, index_: row.ordering})
-      MERGE (title_akas: title_akas {titleID: row.titleId, index_: row.ordering})
+      MATCH (s:Series {seriesName:row.series_name})
+      MERGE (e:Episode {episodeTitle:row.title})
       SET e.season = row.season, e.network = row.network,
       e.imdb = row.imdb, e.engagement = row.engagement,
       e.runtime = row.runtime, e.format = row.format
-      MERGE (s) <-[:IN_SERIES] - (e)# Loading in monsters, subtypes, types, species, and the relationships between them
+      MERGE (s) <-[:IN_SERIES] - (e)
+    # Loading in monsters, subtypes, types, species, and the relationships between them
     
     # loading in the monster, subtype, type, and species nodes
     # as well as the relationships between them
@@ -44,3 +41,33 @@ cypher:
           MERGE (m) -[:IS_SUBTYPE]->(st)
           MERGE (st)-[:IS_TYPE]->(t)
           MERGE (t)-[:IS_SPECIES]->(s)
+    # We can add the Cypher to add main characters to our config.yaml file, which now looks like this      
+    load_main_characters: |
+      MERGE (:MainCharacter {name:"Fred"})
+      MERGE (:MainCharacter {name:"Daphne"})
+      MERGE (:MainCharacter {name:"Shaggy"})
+      MERGE (:MainCharacter {name:"Scooby"})
+      MERGE (:MainCharacter {name:"Velma"})
+  # Now that we’ve loaded all the nodes, we can load in the rest of the relationships    
+  load_relationships:
+    CAUGHT: |
+      WITH $rows AS rows
+      UNWIND rows AS row
+      MATCH (m:Monster {name:row.monster_name})
+      MATCH (mc:MainCharacter {name:$name})
+      MERGE (mc) -[:CAUGHT]->(m)
+    UNMASKED: |
+      WITH $rows AS rows
+      UNWIND rows AS row
+      MATCH (m:Monster {name:row.monster_name})
+      MATCH (mc:MainCharacter {name:$name})
+      MERGE (mc) -[:UNMASKED]->(m)
+    CAPTURED: |
+      WITH $rows AS rows
+      UNWIND rows AS row
+      MATCH (m:Monster {name:row.monster_name})
+      MATCH (mc:MainCharacter {name:$name})
+      MERGE (m) -[:CAPTURED]->(mc)
+    APPEARS_WITH: |
+      MATCH (m:Monster) - [:APPEARS_IN] -> (e:Episode) <- [:APPEARS_IN] - (m1:Monster)
+      MERGE (m) - [:APPEARS_WITH] -> (m1)
