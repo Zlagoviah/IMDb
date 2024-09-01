@@ -14,33 +14,3 @@ cypher:
       MERGE (title_p:Title_principals {titleID: row.tconst})
       ON CREATE SET title_p.index_ = row.ordering, title_p.personID = row.nconst, title_p.job_category= row.category,
       title_p.job_title= row.job, title_p.characters_name= row.characters
-    
-    # loading in title.akas.tsv.gz nodes and connecting them to existing title.principals.tsv.gz nodes
-    load_episodes: |
-      WITH $rows AS rows
-      UNWIND rows AS row
-      WHERE row.titleId IS NOT NULL
-      MATCH (title_akas: title_akas {titleID: row.titleId, index_: row.ordering})
-      MERGE (title_akas: title_akas {titleID: row.titleId, index_: row.ordering})
-      SET e.season = row.season, e.network = row.network,
-      e.imdb = row.imdb, e.engagement = row.engagement,
-      e.runtime = row.runtime, e.format = row.format
-      MERGE (s) <-[:IN_SERIES] - (e)# Loading in monsters, subtypes, types, species, and the relationships between them
-    
-    # loading in the monster, subtype, type, and species nodes
-    # as well as the relationships between them
-    load_monsters: |
-          WITH $rows AS rows
-          UNWIND rows AS row
-          MERGE (m:Monster {name:row.monster_name})
-          SET m.real = row.monster_real, m.gender = row.monster_gender
-          WITH m,row
-          MERGE (st:Subtype {name:row.monster_subtype})
-          MERGE (t:Type {name:row.monster_type})
-          MERGE (s:Species {name:row.monster_species})
-          WITH m,st,t,s,row
-          MATCH (e:Episode {episodeTitle:row.title})
-          MERGE (m) -[:APPEARS_IN] -> (e)
-          MERGE (m) -[:IS_SUBTYPE]->(st)
-          MERGE (st)-[:IS_TYPE]->(t)
-          MERGE (t)-[:IS_SPECIES]->(s)
